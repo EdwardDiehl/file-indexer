@@ -20,6 +20,7 @@ import org.example.lib.IndexedFile
 import org.example.lib.SearchResult
 import org.example.lib.tokenizers.SimpleTokenizer
 import org.example.lib.tokenizers.Tokenizer
+import java.nio.file.ClosedWatchServiceException
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
@@ -295,11 +296,10 @@ class FileIndexer private constructor(
         }
 
     private suspend fun monitorFileSystem() {
-        val watchService = this.watchService ?: return
-
         while (!Thread.currentThread().isInterrupted) {
             try {
-                val watchKey = watchService.take()
+                val currentWatchService = watchService ?: break
+                val watchKey = currentWatchService.take()
                 val basePath = watchKeys[watchKey] ?: continue
 
                 watchKey.pollEvents().forEach { event ->
@@ -335,6 +335,9 @@ class FileIndexer private constructor(
                 }
             } catch (e: InterruptedException) {
                 Thread.currentThread().interrupt()
+                break
+            } catch (e: ClosedWatchServiceException) {
+                // WatchService has been closed, exit gracefully
                 break
             } catch (e: Exception) {
                 println("Error monitoring filesystem changes: ${e.message}")
