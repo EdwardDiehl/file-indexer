@@ -12,4 +12,4 @@ plugins {
 }
 
 rootProject.name = "file-indexer"
-include("lib")
+include("fileindexer")
