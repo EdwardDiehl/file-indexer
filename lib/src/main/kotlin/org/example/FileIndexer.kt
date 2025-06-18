@@ -30,6 +30,8 @@ import java.nio.file.WatchKey
 import java.nio.file.WatchService
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import java.util.logging.Level
+import java.util.logging.Logger
 import kotlin.concurrent.withLock
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
@@ -44,6 +46,8 @@ class FileIndexer private constructor(
     private val fileFilter: (String) -> Boolean,
     private val coroutineIoDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    private val logger = Logger.getLogger(FileIndexer::class.java.name)
+
     // Thread-safe index storage
     private val filePathToIndexedFile = ConcurrentHashMap<String, IndexedFile>()
     private val tokenToFilePaths = ConcurrentHashMap<String, MutableSet<String>>()
@@ -199,7 +203,7 @@ class FileIndexer private constructor(
                             )
                         watchKeys[watchKey] = path
                     } catch (e: Exception) {
-                        println("Error registering watcher on directory $pathString: ${e.message}")
+                        logger.log(Level.WARNING, "Error registering watcher on directory $pathString", e)
                     }
                 }
             }
@@ -242,7 +246,7 @@ class FileIndexer private constructor(
 
                 IndexedFile(path = path.absolutePathString(), lastModified = lastModified, tokens = tokens)
             } catch (e: Exception) {
-                println("Error indexing file $filePath: ${e.message}")
+                logger.log(Level.WARNING, "Error indexing file $filePath", e)
                 null
             }
         }
@@ -340,7 +344,7 @@ class FileIndexer private constructor(
                 // WatchService has been closed, exit gracefully
                 break
             } catch (e: Exception) {
-                println("Error monitoring filesystem changes: ${e.message}")
+                logger.log(Level.WARNING, "Error monitoring filesystem changes", e)
             }
         }
     }
